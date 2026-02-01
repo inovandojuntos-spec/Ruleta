@@ -30,7 +30,6 @@
       box-sizing:border-box;
     }
 
-    /* CARD NEGRO PURO */
     .card{
       width:min(640px,100%);
       background:#000;
@@ -41,13 +40,12 @@
       position:relative;
     }
 
-    /* LOGO (SIN LÍNEA DIVISORIA) */
     .logoHeader{
       display:flex;
       justify-content:center;
       align-items:center;
       padding:14px 0 12px;
-      margin:-14px -14px 0; /* sin separación abajo */
+      margin:-14px -14px 0;
       background:#000;
       border-top-left-radius:22px;
       border-top-right-radius:22px;
@@ -59,16 +57,15 @@
       height:auto;
     }
 
-    /* CONTENEDOR NEGRO, SOLO LA RULETA TIENE SU LOOK */
     .stage{
       position:relative;
       display:flex;
       align-items:center;
       justify-content:center;
       padding:14px 0 16px;
-      background:#000;     /* negro puro */
+      background:#000;
       border-radius:18px;
-      box-shadow:none;     /* sin bordes blancos */
+      box-shadow:none;
       margin-top:10px;
     }
 
@@ -89,7 +86,6 @@
       filter:drop-shadow(0 8px 16px rgba(0,0,0,.9));
     }
 
-    /* BOTÓN */
     .btnBig{
       width:100%;
       cursor:pointer;
@@ -106,8 +102,8 @@
       margin-top:12px;
     }
     .btnBig:active{transform:translateY(1px)}
+    .btnBig[disabled]{opacity:.55; cursor:not-allowed;}
 
-    /* RESULTADO */
     .result{
       margin-top:10px;
       padding:12px 14px;
@@ -128,7 +124,6 @@
       letter-spacing:.4px;
     }
 
-    /* SOUNDCLOUD OCULTO */
     .playerBox{
       position:absolute;
       left:-9999px;
@@ -145,12 +140,10 @@
   <div class="wrap">
     <div class="card">
 
-      <!-- LOGO -->
       <div class="logoHeader">
         <img src="images/logo.png" alt="Innovando Juntos">
       </div>
 
-      <!-- RULETA -->
       <div class="stage">
         <div class="pin"></div>
         <canvas id="wheel" width="800" height="800"></canvas>
@@ -163,7 +156,6 @@
         <div class="value" id="resultText">—</div>
       </div>
 
-      <!-- SOUNDCLOUD OCULTO -->
       <div class="playerBox">
         <iframe id="scFrame" allow="autoplay"></iframe>
       </div>
@@ -172,12 +164,11 @@
   </div>
 
   <script>
-    // ==========
-    // CONFIG
-    // ==========
+    // =========================
+    // CONFIG RULETA
+    // =========================
     const GROUPS = ["SENSUAL","CONFIANZA","DESEOS","CURIOSIDAD","ACERCAMIENTO"];
 
-    // 14+14+14+14+13 = 69
     const GROUP_COUNTS = {
       SENSUAL:14,
       CONFIANZA:14,
@@ -192,9 +183,158 @@
 
     document.getElementById("scFrame").src = DEFAULT_SC_EMBED;
 
-    // ==========
+    // =========================
+    // SNAPSHOT (SOLO CONTADORES)
+    // =========================
+    const SNAPSHOT_KEY = "innovandojuntos_ruleta_snapshot_v1";
+    const PROFILE_KEY  = "player_profile";
+    const SESSION_KEY  = "player_session";
+
+    const SAVE_TRIGGERS = {
+      on_load: true,
+      on_spin_start: true,
+      on_spin_end: true,
+      on_visibility_hidden: true,
+      every_n_spins: 1   // cambia a 3 si quieres guardar cada 3 giros (además de start/end)
+    };
+
+    function safeJSONParse(s){
+      try { return JSON.parse(s); } catch { return null; }
+    }
+    const nowISO = () => new Date().toISOString();
+
+    function getProfile(){
+      return safeJSONParse(localStorage.getItem(PROFILE_KEY));
+    }
+    function getSession(){
+      return safeJSONParse(sessionStorage.getItem(SESSION_KEY));
+    }
+
+    function ensureSession(){
+      let s = getSession();
+      if (!s){
+        s = { session_id: crypto.randomUUID(), started_at: nowISO() };
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify(s));
+      }
+      return s;
+    }
+
+    function loadOrCreateSnapshot(){
+      const existing = safeJSONParse(localStorage.getItem(SNAPSHOT_KEY));
+      const profile = getProfile();
+      const session = ensureSession();
+
+      if (existing && existing.player_id && existing.session_id){
+        // Asegura grupos presentes
+        existing.counts_by_group = existing.counts_by_group || {};
+        for (const g of GROUPS){
+          if (typeof existing.counts_by_group[g] !== "number") existing.counts_by_group[g] = 0;
+        }
+        // refresca session_id por si es nueva pestaña
+        existing.session_id = session.session_id;
+        localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(existing));
+        return existing;
+      }
+
+      const base = {
+        player_id: profile?.player_id || crypto.randomUUID(),
+        session_id: session.session_id,
+        created_at: nowISO(),
+        updated_at: nowISO(),
+
+        games_total: 0,
+        spins_session: 0,
+        total_time_ms: 0,
+
+        last_group: null,
+        last_question: null,
+        last_result_text: null,
+
+        counts_by_group: Object.fromEntries(GROUPS.map(g => [g, 0])),
+
+        session_started_at_ms: performance.now(),
+        last_saved_at_ms: performance.now(),
+
+        last_save_trigger: "created_on_ruleta"
+      };
+
+      localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(base));
+      return base;
+    }
+
+    let STATE = loadOrCreateSnapshot();
+
+    function computeAndAccumulateTime(){
+      const t = performance.now();
+      const prev = (typeof STATE.last_saved_at_ms === "number") ? STATE.last_saved_at_ms : t;
+      const delta = Math.max(0, t - prev);
+      STATE.total_time_ms += delta;
+      STATE.last_saved_at_ms = t;
+    }
+
+    function saveState(trigger){
+      computeAndAccumulateTime();
+      STATE.updated_at = nowISO();
+      STATE.last_save_trigger = trigger;
+      localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(STATE));
+
+      // Si luego quieres DB central, puedes sync aquí según trigger:
+      // if (trigger === "on_spin_end" || trigger === "on_visibility_hidden") syncSnapshot();
+    }
+
+    function maybeSave(trigger){
+      if (trigger === "every_n_spins"){
+        const n = SAVE_TRIGGERS.every_n_spins || 0;
+        if (n > 0 && (STATE.spins_session % n === 0)) saveState("every_n_spins");
+        return;
+      }
+      if (SAVE_TRIGGERS[trigger]) saveState(trigger);
+    }
+
+    // Guardar al cargar
+    maybeSave("on_load");
+
+    // Guardar al cerrar/cambiar pestaña
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden"){
+        if (SAVE_TRIGGERS.on_visibility_hidden) saveState("on_visibility_hidden");
+      }
+    });
+
+    // =========================
+    // (OPCIONAL) SYNC A DB CENTRAL
+    // =========================
+    async function syncSnapshot(){
+      // 1) Crea tu endpoint en backend (Supabase/Cloudflare/Node)
+      // 2) Reemplaza URL y añade auth si corresponde
+      const payload = {
+        player_id: STATE.player_id,
+        session_id: STATE.session_id,
+        games_total: STATE.games_total,
+        spins_session: STATE.spins_session,
+        total_time_ms: Math.round(STATE.total_time_ms),
+        last_group: STATE.last_group,
+        last_question: STATE.last_question,
+        last_result_text: STATE.last_result_text,
+        counts_by_group: STATE.counts_by_group,
+        updated_at: STATE.updated_at
+      };
+
+      try{
+        await fetch("https://TU-ENDPOINT/snapshot", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+          keepalive: true
+        });
+      } catch(e){
+        // Si falla, no afecta UX: queda guardado local
+      }
+    }
+
+    // =========================
     // TICK SOUND (WebAudio)
-    // ==========
+    // =========================
     let audioCtx = null;
 
     function ensureAudio(){
@@ -223,20 +363,20 @@
       osc.stop(t + 0.04);
     }
 
-    // ==========
+    // =========================
     // CANVAS WHEEL
-    // ==========
+    // =========================
     const canvas = document.getElementById("wheel");
     const ctx = canvas.getContext("2d");
     const cx = 400, cy = 400, R = 350;
 
     function drawWheel(rot=0){
       ctx.clearRect(0,0,800,800);
-      const slice = (Math.PI*2)/GROUPS.length;
+      const sliceLocal = (Math.PI*2)/GROUPS.length;
 
       for(let i=0;i<GROUPS.length;i++){
-        const a0 = rot + i*slice;
-        const a1 = a0 + slice;
+        const a0 = rot + i*sliceLocal;
+        const a1 = a0 + sliceLocal;
 
         ctx.beginPath();
         ctx.moveTo(cx,cy);
@@ -250,7 +390,7 @@
 
         ctx.save();
         ctx.translate(cx,cy);
-        ctx.rotate(a0 + slice/2);
+        ctx.rotate(a0 + sliceLocal/2);
         ctx.textAlign="right";
         ctx.fillStyle="#fff";
         ctx.font="900 26px system-ui";
@@ -259,9 +399,9 @@
       }
     }
 
-    // ==========
-    // SPIN + SYNC TICKS
-    // ==========
+    // =========================
+    // SPIN
+    // =========================
     let rot = 0, spinning = false;
 
     const TWO_PI = Math.PI * 2;
@@ -278,8 +418,16 @@
       if(spinning) return;
       spinning = true;
 
-      // Activa audio con gesto del usuario
+      const btnSpin = document.getElementById("btnSpin");
+      btnSpin.disabled = true;
+
       ensureAudio();
+
+      // ===== TRIGGER: SPIN START =====
+      STATE.spins_session += 1;
+      STATE.games_total += 1;
+      maybeSave("on_spin_start");
+      maybeSave("every_n_spins");
 
       const start = rot;
       const end = start + (Math.random()*4 + 7) * TWO_PI;
@@ -287,14 +435,11 @@
 
       function anim(t){
         const p = Math.min(1, (t - t0) / 3200);
-
         const prevRot = rot;
 
-        // easeOutCubic
         rot = start + (end - start) * (1 - Math.pow(1 - p, 3));
         drawWheel(rot);
 
-        // ===== Tick al cruzar límites de segmento =====
         const aPrev = norm(prevRot);
         const aNow  = norm(rot);
 
@@ -310,20 +455,27 @@
         if(p < 1){
           requestAnimationFrame(anim);
         } else {
-          // resultado
           const idx = Math.floor(((Math.PI*1.5 - rot) % TWO_PI + TWO_PI) / slice);
           const g = GROUPS[idx];
           const q = Math.floor(Math.random() * GROUP_COUNTS[g]) + 1;
 
-          document.getElementById("resultText").textContent = `${g} – #${pad2(q)}`;
+          const text = `${g} – #${pad2(q)}`;
+          document.getElementById("resultText").textContent = text;
 
           // acento final
           playTick(1);
 
-          // audio default (por ahora)
           document.getElementById("scFrame").src = DEFAULT_SC_EMBED;
 
+          // ===== TRIGGER: SPIN END =====
+          STATE.last_group = g;
+          STATE.last_question = q;
+          STATE.last_result_text = text;
+          STATE.counts_by_group[g] = (STATE.counts_by_group[g] || 0) + 1;
+          maybeSave("on_spin_end");
+
           spinning = false;
+          btnSpin.disabled = false;
         }
       }
 
