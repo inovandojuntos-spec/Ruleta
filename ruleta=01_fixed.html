@@ -196,8 +196,7 @@
         <div class="value" id="resultText">—</div>
       </div>
 
-      <div class="playerBox" style="display:none">
-
+      <div class="playerBox">
         <div class="playerRow">
           <button class="btnSmall" id="btnPlay">▶ PLAY</button>
           <div class="playerHint" id="playerHint">
@@ -207,7 +206,7 @@
 
         <div id="toast" class="toast">Si no se reproduce automáticamente, toca ▶ PLAY.</div>
 
-        <audio id="audio" class="audioNative" preload="none">
+        <audio id="audio" class="audioNative" controls preload="none">
           <source id="audioSrc" src="audios/pregunta.mp3" type="audio/mpeg">
           Tu navegador no soporta audio HTML5.
         </audio>

@@ -196,8 +196,7 @@
         <div class="value" id="resultText">—</div>
       </div>
 
-      <div class="playerBox" style="display:none">
-
+      <div class="playerBox">
         <div class="playerRow">
           <button class="btnSmall" id="btnPlay">▶ PLAY</button>
           <div class="playerHint" id="playerHint">
@@ -207,7 +206,7 @@
 
         <div id="toast" class="toast">Si no se reproduce automáticamente, toca ▶ PLAY.</div>
 
-        <audio id="audio" class="audioNative" preload="none">
+        <audio id="audio" class="audioNative" controls preload="none">
           <source id="audioSrc" src="audios/pregunta.mp3" type="audio/mpeg">
           Tu navegador no soporta audio HTML5.
         </audio>
@@ -329,28 +328,19 @@ const toast     = document.getElementById("toast");
 const playerBox = document.querySelector(".playerBox");
 
 let audioUnlocked = false;
-let FALLBACK_AUDIO = "audios/pregunta.mp3";
-let currentAudioUrl = FALLBACK_AUDIO;
+let currentAudioUrl = "audios/pregunta.mp3";
 
 function setAudio(url){
-  const u = (url && String(url).trim()) ? String(url).trim() : FALLBACK_AUDIO;
-  currentAudioUrl = u;
+  currentAudioUrl = url || "audios/pregunta.mp3";
 }
 
 async function unlockAudioOnce(){
   if (audioUnlocked) return;
 
-  // Importante: en algunos navegadores (Safari/iOS) es más confiable setear audioEl.src
-  // que sólo cambiar el <source>.
-  audioEl.pause();
-  audioEl.currentTime = 0;
-
-  if (audioSrc) audioSrc.setAttribute("src", currentAudioUrl);
-  audioEl.src = currentAudioUrl;
+  audioSrc.setAttribute("src", currentAudioUrl);
   audioEl.load();
 
   try{
-    // Se hace play/pause dentro del gesto del usuario (click) para "desbloquear" audio.
     await audioEl.play();
     audioEl.pause();
     audioEl.currentTime = 0;
@@ -365,11 +355,9 @@ async function playMainAudio(url){
 
   playerBox.style.display = "block";
 
-  // Forzamos el src correcto siempre (evita que se quede pegado en el default)
-  const current = (audioEl.getAttribute("src") || audioEl.src || "");
-  if (!current || !current.includes(currentAudioUrl)){
-    if (audioSrc) audioSrc.setAttribute("src", currentAudioUrl);
-    audioEl.src = currentAudioUrl;
+  const current = audioSrc.getAttribute("src") || "";
+  if (current !== currentAudioUrl){
+    audioSrc.setAttribute("src", currentAudioUrl);
     audioEl.load();
   }
 
@@ -495,7 +483,7 @@ async function spin(){
 
   ensureAudioCtx();
 
-  setAudio(FALLBACK_AUDIO);
+  setAudio("audios/pregunta.mp3");
   await unlockAudioOnce();
 
   const start = rot;
@@ -592,11 +580,9 @@ async function loadConfig(){
   if (!res.ok) throw new Error("No se pudo cargar " + CONFIG_URL);
   const cfg = await res.json();
 
-  FALLBACK_AUDIO = (cfg.defaultAudio && String(cfg.defaultAudio).trim()) ? String(cfg.defaultAudio).trim() : FALLBACK_AUDIO;
-
   QUESTIONS = Array.isArray(cfg.questions) ? cfg.questions : [];
 
-  const fallbackAudio = FALLBACK_AUDIO;
+  const fallbackAudio = cfg.defaultAudio || "audios/pregunta.mp3";
   QUESTIONS = QUESTIONS.map(q => ({
     no: Number(q.no),
     categoria: String(q.categoria || "").trim(),
@@ -620,7 +606,6 @@ async function loadConfig(){
     };
   }
 
-  setAudio(FALLBACK_AUDIO);
   drawWheel();
   document.getElementById("btnSpin").addEventListener("click", spin);
 }
@@ -629,7 +614,6 @@ loadConfig().catch(err => {
   console.log(err);
   GROUPS = ["MEMÓRIAS","EMOÇÕES","DESEJO","DIÁLOGO","FUTURO"];
   QUESTIONS_BY_GROUP = { "MEMÓRIAS": [], "EMOÇÕES": [], "DESEJO": [], "DIÁLOGO": [], "FUTURO": [] };
-  setAudio(FALLBACK_AUDIO);
   drawWheel();
   document.getElementById("btnSpin").addEventListener("click", spin);
 });
