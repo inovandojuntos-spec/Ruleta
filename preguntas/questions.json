@@ -11,7 +11,7 @@
     { "no": 7, "categoria": "MEMÓRIAS", "pregunta": "Qual é a lembrança mais preciosa da história de vocês?", "audio": "audios/pergunta07.mp3" },
     { "no": 8, "categoria": "MEMÓRIAS", "pregunta": "Existe alguma lembrança difícil que marcou a relação, mas trouxe aprendizado?", "audio": "audios/pergunta08.mp3" },
     { "no": 9, "categoria": "MEMÓRIAS", "pregunta": "O que fez vocês se apaixonarem um pelo outro?", "audio": "audios/pergunta09.mp3" },
-    { "no": 10, "categoria": "MEMÓRIAS", "pregunta": "Qual frase de um de vocês o outro consegue imitar perfeitamente?", "audio": "audios/pergunta10.mp3" },
+    { "no": 10, "categoria": "MEMÓRIAS", "pregunta": "Qual frase do outro vocês conseguem imitar perfeitamente?", "audio": "audios/pergunta10.mp3" },
     { "no": 11, "categoria": "MEMÓRIAS", "pregunta": "Qual objeto totalmente desnecessário que vocês tratam como se fosse ouro?", "audio": "audios/pergunta11.mp3" },
     { "no": 12, "categoria": "MEMÓRIAS", "pregunta": "Se pudesse escolher um dia perfeito juntos, como ele seria?", "audio": "audios/pergunta12.mp3" },
 
@@ -22,7 +22,7 @@
     { "no": 17, "categoria": "EMOÇÕES", "pregunta": "O que vocês mais sentem falta no relacionamento hoje?", "audio": "audios/pergunta17.mp3" },
     { "no": 18, "categoria": "EMOÇÕES", "pregunta": "O que faz cada um se sentir realmente amado nessa relação?", "audio": "audios/pergunta18.mp3" },
     { "no": 19, "categoria": "EMOÇÕES", "pregunta": "Se um de vocês perdesse a memória hoje, o que nunca deveria ser esquecido sobre a relação?", "audio": "audios/pergunta19.mp3" },
-    { "no": 20, "categoria": "EMOÇÕES", "pregunta": "O que deixa vocês mais leves depois de um dia difícil?", "audio": "audios/pergunta20.mp3" },
+    { "no": 20, "categoria": "EMOÇÕES", "pregunta": "O que deixa vocês mais leve depois de um dia difícil?", "audio": "audios/pergunta20.mp3" },
     { "no": 21, "categoria": "EMOÇÕES", "pregunta": "Em três palavras, como vocês descreveriam a relação?", "audio": "audios/pergunta21.mp3" },
     { "no": 22, "categoria": "EMOÇÕES", "pregunta": "Qual a maior insegurança de vocês?", "audio": "audios/pergunta22.mp3" },
     { "no": 23, "categoria": "EMOÇÕES", "pregunta": "Vocês acham que passam tempo suficiente juntos?", "audio": "audios/pergunta23.mp3" },
@@ -33,10 +33,10 @@
 
     { "no": 28, "categoria": "DESEJO", "pregunta": "Qual posição faz vocês sentirem mais prazer?", "audio": "audios/pergunta28.mp3" },
     { "no": 29, "categoria": "DESEJO", "pregunta": "Como vocês se sentem em relação à vida sexual hoje?", "audio": "audios/pergunta29.mp3" },
-    { "no": 30, "categoria": "DESEJO", "pregunta": "Para vocês, sexo precisa acontecer todos os dias? Por quê?", "audio": "audios/pergunta30.mp3" },
+    { "no": 30, "categoria": "DESEJO", "pregunta": "Para vocês, sexo precisa acontecer todos os dias?", "audio": "audios/pergunta30.mp3" },
     { "no": 31, "categoria": "DESEJO", "pregunta": "Vocês já tiveram sonhos eróticos um com o outro?", "audio": "audios/pergunta31.mp3" },
     { "no": 32, "categoria": "DESEJO", "pregunta": "Existe alguma curiosidade ou experiência sexual que vocês gostariam de viver juntos?", "audio": "audios/pergunta32.mp3" },
-    { "no": 33, "categoria": "DESEJO", "pregunta": "Como vocês se sentem sobre sexo anal?", "audio": "audios/pergunta33.mp3" },
+    { "no": 33, "categoria": "DESEJO", "pregunta": "O que  vocês pensam sobre sexo anal como parte da intimidade?", "audio": "audios/pergunta33.mp3" },
     { "no": 34, "categoria": "DESEJO", "pregunta": "Como vocês se sentem em relação a frequentar uma casa de swing?", "audio": "audios/pergunta34.mp3" },
     { "no": 35, "categoria": "DESEJO", "pregunta": "Vocês já tiveram ou têm algum fetiche?", "audio": "audios/pergunta35.mp3" },
     { "no": 36, "categoria": "DESEJO", "pregunta": "Existe alguma fantasia erótica que vocês gostariam de realizar juntos?", "audio": "audios/pergunta36.mp3" },
@@ -67,7 +67,7 @@
     { "no": 59, "categoria": "FUTURO", "pregunta": "Quais sonhos vocês gostariam de realizar juntos no futuro?", "audio": "audios/pergunta59.mp3" },
     { "no": 60, "categoria": "FUTURO", "pregunta": "O que vocês esperam um do outro como parceiros?", "audio": "audios/pergunta60.mp3" },
     { "no": 61, "categoria": "FUTURO", "pregunta": "Como vocês gostariam que a relação evoluísse nos próximos anos?", "audio": "audios/pergunta61.mp3" },
-    { "no": 62, "categoria": "FUTURO", "pregunta": "Que tipo de vida vocês sonham em construir juntos? E o que estão fazendo para construir?", "audio": "audios/pergunta62.mp3" },
+    { "no": 62, "categoria": "FUTURO", "pregunta": "Que tipo de vida vocês sonham em construir juntos? E o que estão fazendo para isso acontecer?", "audio": "audios/pergunta62.mp3" },
     { "no": 63, "categoria": "FUTURO", "pregunta": "Se vocês tivessem que criar uma tradição só do casal, qual seria?", "audio": "audios/pergunta63.mp3" },
     { "no": 64, "categoria": "FUTURO", "pregunta": "Quais hobbies ou atividades vocês gostariam de começar como casal?", "audio": "audios/pergunta64.mp3" },
     { "no": 65, "categoria": "FUTURO", "pregunta": "O que opinam sobre relacionamentos abertos?", "audio": "audios/pergunta65.mp3" },
@@ -77,3 +77,4 @@
     { "no": 69, "categoria": "FUTURO", "pregunta": "Existe algo emocional que, quando não está bem, interfere diretamente na vida sexual?", "audio": "audios/pergunta69.mp3" }
   ]
 }
+
