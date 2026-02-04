@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="es">
+<html lang="pt-BR">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Bienvenida</title>
+  <title>Bem-vindo</title>
 
   <style>
     :root{
@@ -78,7 +78,10 @@
       cursor:pointer;
       margin-top:6px;
     }
-    .btn:active{ transform:translateY(1px); }
+    .btn:disabled{
+      opacity:.6;
+      cursor:not-allowed;
+    }
     .welcomeBack{
       text-align:center;
       font-size:14px;
@@ -101,21 +104,25 @@
       <img src="images/logo.png" alt="Logo">
     </div>
 
-    <h1 id="title">Bienvenido</h1>
-    <p id="subtitle">Antes de comenzar, dinos cómo te llamas.</p>
+    <h1 id="title">Bem-vindo</h1>
+    <p id="subtitle">Antes de começar, diga-nos como você se chama.</p>
 
     <div id="welcomeBack" class="welcomeBack" style="display:none;"></div>
 
-    <label for="name">NOMBRE *</label>
-    <input id="name" type="text" placeholder="Tu nombre" autocomplete="given-name">
+    <label for="name">NOME *</label>
+    <input id="name" type="text" placeholder="Seu nome" autocomplete="given-name">
 
-    <label for="contact">INSTAGRAM O GMAIL</label>
-    <input id="contact" type="text" placeholder="@usuario o correo">
+    <label for="contact">INSTAGRAM OU GMAIL</label>
+    <input id="contact" type="text" placeholder="@usuario ou email">
 
-    <button class="btn" id="startBtn">COMENZAR</button>
+    <button class="btn" id="startBtn">COMEÇAR</button>
+
+    <div id="loadingMsg" class="small" style="display:none;">
+      Conctandio .....
+    </div>
 
     <div class="small">
-      Tu progreso se guardará en este dispositivo.
+      Seu progresso será salvo neste dispositivo.
     </div>
 
   </div>
@@ -125,8 +132,7 @@
 /* =========================
    CONFIG
 ========================= */
-// ✅ NUEVO endpoint: ij_events
-const EVENTS_ENDPOINT = "https://rsordtljnvxonaygyuxd.supabase.co/functions/v1/IJ_events";
+const SNAPSHOT_ENDPOINT = "https://rsordtljnvxonaygyuxd.supabase.co/functions/v1/IJ_events";
 const SUPABASE_ANON_KEY = "sb_publishable_iA35OOvF4WVTKJ4d7G0W7A_TR4FLwf9";
 
 /* =========================
@@ -140,12 +146,8 @@ const SNAPSHOT_KEY = "innovandojuntos_ruleta_snapshot_v1";
    HELPERS
 ========================= */
 function uuid(){
-  return (crypto.randomUUID
-    ? crypto.randomUUID()
-    : String(Date.now()) + "-" + Math.random().toString(16).slice(2)
-  );
+  return crypto.randomUUID();
 }
-
 const normalizeContact = v => (v ? v.trim().toLowerCase() : "");
 const nowISO = () => new Date().toISOString();
 
@@ -153,221 +155,56 @@ function safeJSONParse(s){
   try { return JSON.parse(s); } catch { return null; }
 }
 
-function getProfile(){
-  return safeJSONParse(localStorage.getItem(PROFILE_KEY));
-}
-
-function saveProfile(p){
-  localStorage.setItem(PROFILE_KEY, JSON.stringify(p));
-}
-
-function getSession(){
-  return safeJSONParse(sessionStorage.getItem(SESSION_KEY));
-}
-
-function ensureSession(){
-  let s = getSession();
-  if (!s){
-    s = { session_id: uuid(), started_at: nowISO() };
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify(s));
-  }
-  return s;
-}
-
 /* =========================
-   SNAPSHOT (LOCAL)
+   INIT
 ========================= */
-function ensureSnapshot(profile, session){
-  const existing = safeJSONParse(localStorage.getItem(SNAPSHOT_KEY));
-  if (existing && existing.player_id && existing.session_id) return existing;
-
-  const base = {
-    player_id: profile?.player_id || uuid(),
-    session_id: session?.session_id || uuid(),
-
-    profile_name: profile?.name || null,
-    profile_contact: profile?.contact || null,
-
-    games_total: 0,
-    spins_session: 0,
-    total_time_ms: 0,
-
-    last_group: null,
-    last_question: null,
-    last_result_text: null,
-
-    counts_by_group: {},
-
-    created_at: nowISO(),
-    updated_at: nowISO(),
-
-    session_started_at_ms: performance.now(),
-    last_saved_at_ms: performance.now(),
-    last_save_trigger: "created_on_index"
-  };
-
-  localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(base));
-  return base;
-}
-
-function updateSnapshot(patch){
-  const snap = safeJSONParse(localStorage.getItem(SNAPSHOT_KEY)) || {};
-  const next = {
-    ...snap,
-    ...patch,
-    updated_at: nowISO(),
-    last_saved_at_ms: performance.now()
-  };
-  localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(next));
-  return next;
-}
-
-/* =========================
-   POST EVENT (REMOTE)
-========================= */
-async function postEventToSupabase(eventPayload){
-  try{
-    const res = await fetch(EVENTS_ENDPOINT, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "apikey": SUPABASE_ANON_KEY,
-        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
-      },
-      body: JSON.stringify(eventPayload),
-    });
-
-    const text = await res.text(); // leer SIEMPRE el body para debug
-
-    if (!res.ok){
-      console.error("ij_events post failed:", {
-        status: res.status,
-        statusText: res.statusText,
-        body: text
-      });
-      return { ok:false, body:text };
-    }
-
-    // console.log("ij_events ok:", text);
-    return { ok:true, body:text };
-
-  } catch(e){
-    console.error("ij_events post error:", e);
-    return { ok:false, body:String(e) };
-  }
-}
-
-/* =========================
-   INIT UI
-========================= */
-const session = ensureSession();
-
-const nameInput    = document.getElementById("name");
+const nameInput = document.getElementById("name");
 const contactInput = document.getElementById("contact");
-const startBtn     = document.getElementById("startBtn");
-const welcomeEl    = document.getElementById("welcomeBack");
+const startBtn = document.getElementById("startBtn");
+const loadingMsg = document.getElementById("loadingMsg");
 
-let profile = getProfile();
-
-if (profile){
-  document.getElementById("title").textContent = "¡Bienvenido de nuevo!";
-  document.getElementById("subtitle").textContent = "Reconocimos tu progreso. Puedes continuar.";
-
-  nameInput.value    = profile.name || "";
-  contactInput.value = profile.contact || "";
-
-  welcomeEl.style.display = "block";
-  welcomeEl.textContent = `Hola ${profile.name}`;
-}
-
-// crea snapshot base (si no existe)
-ensureSnapshot(profile, session);
-
-/* =========================
-   START CLICK
-========================= */
 startBtn.addEventListener("click", async () => {
   const name = nameInput.value.trim();
   const contact = normalizeContact(contactInput.value);
 
   if (!name){
-    alert("Por favor ingresa tu nombre");
+    alert("Por favor, informe seu nome");
     return;
   }
 
-  const now = nowISO();
+  // UI: deshabilitar y mostrar mensaje
+  startBtn.disabled = true;
+  startBtn.textContent = "Conctandio .....";
+  loadingMsg.style.display = "block";
 
-  // 1) guardar/actualizar perfil local
-  if (!profile){
-    profile = {
-      player_id: uuid(),
-      name,
-      contact,
-      created_at: now
-    };
-  } else {
-    profile.name = name;
-    profile.contact = contact;
-    profile.updated_at = now;
-  }
-  saveProfile(profile);
-
-  // 2) actualizar snapshot local
-  const snapBefore = safeJSONParse(localStorage.getItem(SNAPSHOT_KEY)) || {};
-  const nextSnap = updateSnapshot({
-    player_id: profile.player_id,
-    profile_name: profile.name || null,
-    profile_contact: profile.contact || null,
-
-    games_total: (Number(snapBefore.games_total) || 0) + 1,
-    last_save_trigger: "game_started_on_index"
-  });
-
-  // 3) enviar EVENTO a Supabase (nuevo endpoint ij_events)
-  //    Nota: tu Edge Function agrega ip y user_agent en server-side.
-  //    Aquí mandamos required + contexto.
-  const event = {
-    player_id: nextSnap.player_id,
-    session_id: nextSnap.session_id,
-
-    profile_name: nextSnap.profile_name,
-    profile_contact: nextSnap.profile_contact,
-
-    event_type: "auth",
-    event_name: "logging_in",
-
+  const payload = {
+    player_id: uuid(),
+    session_id: uuid(),
+    event_name: "login",
+    event_type: "login",
     event_source: "index.html",
-    event_version: 1,
-
-    page_url: window.location.href,
-    referrer: document.referrer || null,
-
-    // campos libres por si quieres filtrar rápido sin abrir payload
-    data1: nextSnap.profile_name || null,
-    data2: nextSnap.profile_contact || null,
-    data3: null,
-
-    // payload flexible (jsonb) para auditoría / debugging / analytics
-    payload: {
-      snapshot: {
-        games_total: Number(nextSnap.games_total) || 0,
-        spins_session: Number(nextSnap.spins_session) || 0,
-        total_time_ms: Math.round(nextSnap.total_time_ms) || 0,
-        last_group: nextSnap.last_group || null,
-        last_question: nextSnap.last_question || null,
-        last_result_text: nextSnap.last_result_text || null,
-        counts_by_group: nextSnap.counts_by_group || {}
-      }
-    }
+    profile_name: name,
+    profile_contact: contact,
+    games_total: 1,
+    spins_session: 0,
+    total_time_ms: 0,
+    counts_by_group: {}
   };
 
-  // Si quieres bloquear el redirect solo cuando falle el log, descomenta:
-  // const r = await postEventToSupabase(event);
-  // if (!r.ok) { alert("No se pudo registrar el evento. Revisa consola."); return; }
+  try{
+    await fetch(SNAPSHOT_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": SUPABASE_ANON_KEY,
+        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
+      },
+      body: JSON.stringify(payload)
+    });
+  } catch(e){
+    console.error(e);
+  }
 
-  postEventToSupabase(event); // no bloquea UX
-
-  // 4) redirect (AJUSTA el archivo real)
   window.location.href = "ruleta=02.html";
 });
 </script>
